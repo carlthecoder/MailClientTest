@@ -20,7 +20,7 @@ namespace DeveloperTest.Model
                 {
                     imap.SSLConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
                     imap.ConnectSSL(servername, port);  // or ConnectSSL for SSL
-                    imap.UseBestLogin("carl.claessens@gmail.com", "Gm@ilpas13");
+                    imap.UseBestLogin(username, password);
                     imap.SelectInbox();
                     var folders = imap.GetFolders();
                     List<long> uids = imap.Search(Flag.All);
