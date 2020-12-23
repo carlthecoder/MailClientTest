@@ -1,25 +1,29 @@
 ﻿using DeveloperTest.Model;
 using System;
 using System.Collections;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace DeveloperTest.ViewModel
 {
-    public class MainWindowViewModel : IMainWindowViewModel
+    public class MainWindowViewModel : IMainWindowViewModel, IMailObserver
     {
         private readonly IMailService mailService;
 
-        private string servername;
-        private string port;
-        private string username;
-        private string password;
+        private string servername = "imap.gmail.com";
+        private int port = 993;
+        private string username = "carl.claessens@gmail.com";
+        private string password = "Gm@ilpas13";
         private ConnectionType selectedConnection = ConnectionType.IMAP;
         private EncryptionType selectedEncryption = EncryptionType.SSL_TLS;
 
         public event PropertyChangedEventHandler PropertyChanged;
+
+        public ObservableCollection<MailInfo> Envelopes { get; private set; } = new ObservableCollection<MailInfo>();
 
         public IEnumerable ConnectionTypes => Enum.GetValues(typeof(ConnectionType));
         public IEnumerable EncryptionTypes => Enum.GetValues(typeof(EncryptionType));
@@ -66,15 +70,13 @@ namespace DeveloperTest.ViewModel
 
         public string Port
         {
-            get { return port; }
+            get { return port.ToString(); }
             set
             {
-                if (value == port)
-                    return;
                 if (!Regex.IsMatch(value, "^\\d+$"))
                     return;
 
-                port = value;
+                port = int.Parse(value);
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(StartCommand));
             }
@@ -113,25 +115,35 @@ namespace DeveloperTest.ViewModel
         public MainWindowViewModel()
         {
             mailService = new MailService();
+            mailService.Register(this);
+        }
+
+        public void UnregisterFromMailService()
+        {
+            mailService.Unregister(this);
+        }
+
+        private void Start(object obj)
+        {
+            mailService.Connect(Servername, port, Username, Password, SelectedConnection, SelectedEncryption);
         }
 
         private bool CanStart(object obj)
         {
-            return !string.IsNullOrEmpty(Password) &&
+            return  !string.IsNullOrEmpty(Password) &&
                     !string.IsNullOrEmpty(Username) &&
                     !string.IsNullOrEmpty(Servername) &&
                     !string.IsNullOrEmpty(Port);
         }
 
-        private void Start(object obj)
-        {
-            int port = int.Parse(Port);
-            mailService.ConnectAsync(Servername, port, Username, Password);
-        }
-
         private void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        async void IMailObserver.NewMailInfoAdded(MailInfo info)
+        {
+            await App.Current.Dispatcher.InvokeAsync(() => Envelopes.Add(info));
         }
     }
 }

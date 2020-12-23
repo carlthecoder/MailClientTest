@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MainWindow" Height="740" Width="1297">
     <Grid>
-        <DataGrid VerticalAlignment="Top" Height="554" Margin="10,146,0,0" HorizontalAlignment="Left" Width="632"/>
+        <DataGrid VerticalAlignment="Top" Height="554" Margin="10,146,0,0" HorizontalAlignment="Left" Width="632" ItemsSource="{Binding Envelopes}"/>
         <TextBox HorizontalAlignment="Left" Height="23" Margin="98,41,0,0" TextWrapping="Wrap" Text="{Binding Servername, Mode=TwoWay}" VerticalAlignment="Top" Width="190"/>
         <Label Content="Server" HorizontalAlignment="Left" Margin="10,37,0,0" VerticalAlignment="Top"/>
         <Label Content="Port" HorizontalAlignment="Left" Margin="10,65,0,0" VerticalAlignment="Top"/>

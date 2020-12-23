@@ -16,5 +16,7 @@ namespace DeveloperTest.ViewModel
         string Password { get; set; }
 
         ICommand StartCommand { get; }
+
+        void UnregisterFromMailService();
     }
 }

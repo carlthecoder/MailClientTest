@@ -4,7 +4,9 @@ namespace DeveloperTest.Model
 {
     public interface IMailService
     {
-        Task ConnectAsync(string servername, int port, string username, string password);
+        void Register(IMailObserver observer);
+        void Unregister(IMailObserver observer);
 
+        void Connect(string servername, int port, string username, string password, ConnectionType connection, EncryptionType encryption);
     }
 }

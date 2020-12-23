@@ -60,8 +60,10 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Model\Commands.cs" />
-    <Compile Include="Model\Enums.cs" />
+    <Compile Include="Model\IMailObserver.cs" />
+    <Compile Include="Model\MailEnums.cs" />
     <Compile Include="Model\IMailService.cs" />
+    <Compile Include="Model\MailInfo.cs" />
     <Compile Include="Model\MailService.cs" />
     <Compile Include="ViewModel\IMainWindowViewModel.cs" />
     <Compile Include="ViewModel\MainWindowViewModel.cs" />

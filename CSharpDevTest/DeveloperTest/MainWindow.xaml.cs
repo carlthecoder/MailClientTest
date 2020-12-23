@@ -31,7 +31,14 @@ namespace DeveloperTest
 
             ViewModel = new MainWindowViewModel();
 
-            DataContext = ViewModel;          
+            DataContext = ViewModel;
+
+            Unloaded += MainWindow_Unloaded;
+        }
+
+        private void MainWindow_Unloaded(object sender, RoutedEventArgs e)
+        {
+            ViewModel.UnregisterFromMailService();
         }
     }
 }
