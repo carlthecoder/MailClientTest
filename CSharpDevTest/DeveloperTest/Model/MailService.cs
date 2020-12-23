@@ -6,13 +6,16 @@ using System.Diagnostics;
 using System.Linq;
 using System.Security.Authentication;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DeveloperTest.Model
 {
     public sealed class MailService : IMailService
     {
-        private List<IMailObserver> observers = new List<IMailObserver>();
+        private readonly List<IMailObserver> observers = new List<IMailObserver>();
+        private Imap imap;
+        private object bodyThreadLocker = new object();
 
         public void Register(IMailObserver observer)
         {
@@ -39,46 +42,60 @@ namespace DeveloperTest.Model
         {
             await Task.Run(async () =>
             {
-                using (var imap = new Imap())
+                imap = new Imap();
+                
+                imap.SSLConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
+
+                try
                 {
-                    imap.SSLConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
-
-                    try
-                    {
-                        imap.ConnectSSL(servername, port);  // or ConnectSSL for SSL
-                        imap.UseBestLogin(username, password);
-                    }
-                    catch (Exception exception)
-                    {
-                        Debug.WriteLine($"Message: {exception.Message}");
-                        return;
-                    }
-
-                    StartInfoDownload(imap);
+                    //Todo determine connection Algorithm
+                    imap.ConnectSSL(servername, port);  // or ConnectSSL for SSL
+                    imap.UseBestLogin(username, password);
                 }
+                catch (Exception exception)
+                {
+                    Debug.WriteLine($"Message: {exception.Message}");
+                    return;
+                }
+
+                await StartInfoDownloadAsync(imap).ConfigureAwait(false);
+
+                imap.Dispose();
+               
             }).ConfigureAwait(false);
         }
 
-        private void StartInfoDownload(Imap imap)
+        private async Task StartInfoDownloadAsync(Imap imap)
         {
             imap.SelectInbox();
-            List<long> uids = imap.Search(Flag.All);
+            var uids = imap.Search(Flag.All);
+            var messageInfos = new List<MessageInfo>();
 
-            List<MessageInfo> messageInfos = new List<MessageInfo>();
-
-            foreach (long uid in uids)
+            try
             {
-                var info = imap.GetMessageInfoByUID(uid);
+                foreach (long uid in uids)
+                {
+                    var info = imap.GetMessageInfoByUID(uid);
 
-                HandleMessageInfo(info);
-                messageInfos.Add(info);
+                    if (info != null)
+                    {
+                        HandleMessageInfo(info, uid);
+                        messageInfos.Add(info);
+                    }
+
+                    //Task.Run(() => StartBodyDownloadForUid(uid, imap)).ConfigureAwait(false);                    
+                }
+                
             }
-        }
+            catch (Exception exception)
+            {
+                Debug.WriteLine($"Message: {exception.Message}");
+            }
+        }       
 
-        private void HandleMessageInfo(MessageInfo info)
+        private void HandleMessageInfo(MessageInfo info, long uid)
         {
             var fromString = new StringBuilder();
-
             foreach (var sender in info.Envelope.From)
             {
                 fromString.Append($"{sender.Address}, ");
@@ -86,7 +103,7 @@ namespace DeveloperTest.Model
 
             var date = info.Envelope.Date;
             var subject = info.Envelope.Subject;
-            var mailInfo = new MailInfo(fromString.ToString(), date, subject);
+            var mailInfo = new MailInfo(uid, fromString.ToString(), date, subject);
             NotifyObsersversInfoAdded(mailInfo);
         }
 
@@ -95,6 +112,39 @@ namespace DeveloperTest.Model
             foreach (var observer in observers)
             {
                 observer.NewMailInfoAdded(info);
+            }
+        }
+
+        private void StartBodyDownloadForUid(long uid, Imap imap)
+        {
+            string text = "";
+            string html = "";
+
+            lock(bodyThreadLocker)
+            {
+                var body = imap.GetBodyStructureByUID(uid);
+
+                if (body.Text != null)
+                {
+                    text = imap.GetTextByUID(body.Text);
+                }
+
+                if (body.Html != null)
+                {
+                    html = imap.GetTextByUID(body.Html);
+                }               
+            }
+
+            var mailBody = new MailBody(uid, text, html);
+
+            NotifyObsersversBodyDownloaded(mailBody);
+        }
+
+        private void NotifyObsersversBodyDownloaded(MailBody body)
+        {
+            foreach (var observer in observers)
+            {
+                observer.NewMailBodyDownloaded(body);
             }
         }
     }

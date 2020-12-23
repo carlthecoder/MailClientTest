@@ -61,6 +61,7 @@
     </ApplicationDefinition>
     <Compile Include="Model\Commands.cs" />
     <Compile Include="Model\IMailObserver.cs" />
+    <Compile Include="Model\MailBody.cs" />
     <Compile Include="Model\MailEnums.cs" />
     <Compile Include="Model\IMailService.cs" />
     <Compile Include="Model\MailInfo.cs" />

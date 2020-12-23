@@ -29,7 +29,7 @@ namespace DeveloperTest
         {
             InitializeComponent();
 
-            ViewModel = new MainWindowViewModel();
+            ViewModel = new MainWindowViewModel();  // Normally I would use Dependency Injection / Ioc, but it's not compatible with .Net 4.5.2
 
             DataContext = ViewModel;
 

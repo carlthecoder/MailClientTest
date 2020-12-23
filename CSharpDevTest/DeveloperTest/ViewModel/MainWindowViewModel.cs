@@ -1,6 +1,7 @@
 ﻿using DeveloperTest.Model;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -23,7 +24,8 @@ namespace DeveloperTest.ViewModel
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public ObservableCollection<MailInfo> Envelopes { get; private set; } = new ObservableCollection<MailInfo>();
+        public ObservableCollection<MailInfo> Envelopes { get; } = new ObservableCollection<MailInfo>();
+        public IList<MailBody> MailBodies { get; } = new List<MailBody>();
 
         public IEnumerable ConnectionTypes => Enum.GetValues(typeof(ConnectionType));
         public IEnumerable EncryptionTypes => Enum.GetValues(typeof(EncryptionType));
@@ -114,7 +116,7 @@ namespace DeveloperTest.ViewModel
 
         public MainWindowViewModel()
         {
-            mailService = new MailService();
+            mailService = new MailService();        // Normally I would use Dependency Injection / Ioc, but it's not compatible with .Net 4.5.2
             mailService.Register(this);
         }
 
@@ -125,12 +127,15 @@ namespace DeveloperTest.ViewModel
 
         private void Start(object obj)
         {
+            Envelopes.Clear();
+            MailBodies.Clear();
+
             mailService.Connect(Servername, port, Username, Password, SelectedConnection, SelectedEncryption);
         }
 
         private bool CanStart(object obj)
         {
-            return  !string.IsNullOrEmpty(Password) &&
+            return !string.IsNullOrEmpty(Password) &&
                     !string.IsNullOrEmpty(Username) &&
                     !string.IsNullOrEmpty(Servername) &&
                     !string.IsNullOrEmpty(Port);
@@ -144,6 +149,11 @@ namespace DeveloperTest.ViewModel
         async void IMailObserver.NewMailInfoAdded(MailInfo info)
         {
             await App.Current.Dispatcher.InvokeAsync(() => Envelopes.Add(info));
+        }
+
+        void IMailObserver.NewMailBodyDownloaded(MailBody body)
+        {
+            MailBodies.Add(body);
         }
     }
 }
