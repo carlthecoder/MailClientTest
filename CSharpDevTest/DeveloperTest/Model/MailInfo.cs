@@ -8,12 +8,13 @@ namespace DeveloperTest.Model
 {
     public sealed class MailInfo
     {
-        public long Uid { get; set; }
+        public string Uid { get; set; }
+        public bool isBodyDownloaded { get; set; }
         public string From { get; set; }
         public string Subject { get; set; }
         public DateTime? Date { get; set; }
 
-        public MailInfo(long uid, string from, DateTime? date, string subject = "")
+        public MailInfo(string uid, string from, DateTime? date, string subject = "")
         {
             Uid = uid;
             From = from;

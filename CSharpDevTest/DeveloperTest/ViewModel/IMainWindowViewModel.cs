@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 using System.Windows.Input;
 
 namespace DeveloperTest.ViewModel
@@ -14,9 +9,6 @@ namespace DeveloperTest.ViewModel
         string Port { get; set; }
         string Username { get; set; }
         string Password { get; set; }
-
         ICommand StartCommand { get; }
-
-        void UnregisterFromMailService();
     }
 }

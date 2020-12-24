@@ -33,12 +33,14 @@ namespace DeveloperTest
 
             DataContext = ViewModel;
 
-            Unloaded += MainWindow_Unloaded;
+            Loaded += OnLoaded;
         }
 
-        private void MainWindow_Unloaded(object sender, RoutedEventArgs e)
+        private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            ViewModel.UnregisterFromMailService();
+            Loaded -= OnLoaded;
+            MailGrid.Columns[0].Visibility = Visibility.Hidden;
+            MailGrid.Columns[1].Visibility = Visibility.Hidden;
         }
     }
 }

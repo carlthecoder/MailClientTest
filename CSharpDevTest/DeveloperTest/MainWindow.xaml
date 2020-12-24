@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MainWindow" Height="740" Width="1297">
     <Grid>
-        <DataGrid VerticalAlignment="Top" Height="554" Margin="10,146,0,0" HorizontalAlignment="Left" Width="632" ItemsSource="{Binding Envelopes}"/>
+        <DataGrid x:Name="MailGrid" VerticalAlignment="Top" Height="554" Margin="10,146,0,0" HorizontalAlignment="Left" Width="632" ItemsSource="{Binding MailInfos}" SelectedItem="{Binding SelectedMail, Mode=TwoWay}"/>
         <TextBox HorizontalAlignment="Left" Height="23" Margin="98,41,0,0" TextWrapping="Wrap" Text="{Binding Servername, Mode=TwoWay}" VerticalAlignment="Top" Width="190"/>
         <Label Content="Server" HorizontalAlignment="Left" Margin="10,37,0,0" VerticalAlignment="Top"/>
         <Label Content="Port" HorizontalAlignment="Left" Margin="10,65,0,0" VerticalAlignment="Top"/>
@@ -17,7 +17,7 @@
         <Button Content="Start" HorizontalAlignment="Left" Margin="446,104,0,0" VerticalAlignment="Top" Width="155" Height="36" Command="{Binding StartCommand, Mode=OneWay}"/>
         <Label Content="Server type" HorizontalAlignment="Left" Margin="10,7,0,0" VerticalAlignment="Top"/>
         <ComboBox HorizontalAlignment="Left" Margin="98,10,0,0" VerticalAlignment="Top" Width="190" ItemsSource="{Binding ConnectionTypes, Mode=OneWay}" SelectedItem="{Binding SelectedConnection, Mode=TwoWay}"/>
-        <TextBox HorizontalAlignment="Left" Height="690" Margin="647,10,0,0" TextWrapping="Wrap" Text="This should show the message body HTML/Text" VerticalAlignment="Top" Width="632"/>
+        <TextBox HorizontalAlignment="Left" Height="690" Margin="647,10,0,0" TextWrapping="Wrap" Text="{Binding MailText, Mode=OneWay}" VerticalAlignment="Top" Width="632"/>
 
     </Grid>
 </Window>

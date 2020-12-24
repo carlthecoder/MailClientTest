@@ -1,7 +1,7 @@
 ﻿using Limilabs.Client.IMAP;
-using Limilabs.Mail;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Security.Authentication;
@@ -11,141 +11,49 @@ using System.Threading.Tasks;
 
 namespace DeveloperTest.Model
 {
-    public sealed class MailService : IMailService
+    public sealed class MailService : IMailService, IConnectionObserver
     {
-        private readonly List<IMailObserver> observers = new List<IMailObserver>();
-        private Imap imap;
-        private object bodyThreadLocker = new object();
+        private IMailConnection connection;
 
-        public void Register(IMailObserver observer)
+        public ObservableCollection<MailInfo> MailInfos { get; private set; } = new ObservableCollection<MailInfo>();
+        public IList<MailBody> MailBodies { get; private set; } = new List<MailBody>();
+
+        public void Connect(ConnectionDetails connectionDetails)
         {
-            if (!observers.Contains(observer))
+            ClearCaches();
+            switch (connectionDetails.ConnectionType)
             {
-                observers.Add(observer);
-            }
-        }
-
-        public void Unregister(IMailObserver observer)
-        {
-            if (observers.Contains(observer))
-            {
-                observers.Add(observer);
-            }
-        }
-
-        public async void Connect(string servername, int port, string username, string password, ConnectionType connection, EncryptionType encryption)
-        {
-            await ConnectAsync(servername, port, username, password, connection, encryption);
-        }
-
-        private async Task ConnectAsync(string servername, int port, string username, string password, ConnectionType connection, EncryptionType encryption)
-        {
-            await Task.Run(async () =>
-            {
-                imap = new Imap();
-                
-                imap.SSLConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
-
-                try
-                {
-                    //Todo determine connection Algorithm
-                    imap.ConnectSSL(servername, port);  // or ConnectSSL for SSL
-                    imap.UseBestLogin(username, password);
-                }
-                catch (Exception exception)
-                {
-                    Debug.WriteLine($"Message: {exception.Message}");
+                case ConnectionType.IMAP:
+                    connection = new ImapConnection(connectionDetails);
+                    break;
+                case ConnectionType.POP3:
+                    connection = new Pop3Connection(connectionDetails);
+                    break;
+                default:
                     return;
-                }
+            }
 
-                await StartInfoDownloadAsync(imap).ConfigureAwait(false);
+            connection.Register(this);
 
-                imap.Dispose();
-               
-            }).ConfigureAwait(false);
+            Task.Factory.StartNew(connection.DownloadMailInfo, TaskCreationOptions.LongRunning);
         }
 
-        private async Task StartInfoDownloadAsync(Imap imap)
+
+        // Todo: solving this without an observer?
+        async void IConnectionObserver.NewInfoAdded(MailInfo info)
         {
-            imap.SelectInbox();
-            var uids = imap.Search(Flag.All);
-            var messageInfos = new List<MessageInfo>();
-
-            try
-            {
-                foreach (long uid in uids)
-                {
-                    var info = imap.GetMessageInfoByUID(uid);
-
-                    if (info != null)
-                    {
-                        HandleMessageInfo(info, uid);
-                        messageInfos.Add(info);
-                    }
-
-                    //Task.Run(() => StartBodyDownloadForUid(uid, imap)).ConfigureAwait(false);                    
-                }
-                
-            }
-            catch (Exception exception)
-            {
-                Debug.WriteLine($"Message: {exception.Message}");
-            }
-        }       
-
-        private void HandleMessageInfo(MessageInfo info, long uid)
-        {
-            var fromString = new StringBuilder();
-            foreach (var sender in info.Envelope.From)
-            {
-                fromString.Append($"{sender.Address}, ");
-            }
-
-            var date = info.Envelope.Date;
-            var subject = info.Envelope.Subject;
-            var mailInfo = new MailInfo(uid, fromString.ToString(), date, subject);
-            NotifyObsersversInfoAdded(mailInfo);
+            await App.Current.Dispatcher.InvokeAsync(() => MailInfos.Add(info));
         }
 
-        private void NotifyObsersversInfoAdded(MailInfo info)
+        async void IConnectionObserver.NewBodyAdded(MailBody body)
         {
-            foreach (var observer in observers)
-            {
-                observer.NewMailInfoAdded(info);
-            }
+            await App.Current.Dispatcher.InvokeAsync(() => MailBodies.Add(body));
         }
 
-        private void StartBodyDownloadForUid(long uid, Imap imap)
+        private void ClearCaches()
         {
-            string text = "";
-            string html = "";
-
-            lock(bodyThreadLocker)
-            {
-                var body = imap.GetBodyStructureByUID(uid);
-
-                if (body.Text != null)
-                {
-                    text = imap.GetTextByUID(body.Text);
-                }
-
-                if (body.Html != null)
-                {
-                    html = imap.GetTextByUID(body.Html);
-                }               
-            }
-
-            var mailBody = new MailBody(uid, text, html);
-
-            NotifyObsersversBodyDownloaded(mailBody);
-        }
-
-        private void NotifyObsersversBodyDownloaded(MailBody body)
-        {
-            foreach (var observer in observers)
-            {
-                observer.NewMailBodyDownloaded(body);
-            }
+            MailBodies.Clear();
+            MailInfos.Clear();
         }
     }
 }

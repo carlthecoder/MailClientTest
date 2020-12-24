@@ -59,8 +59,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Model\Commands.cs" />
-    <Compile Include="Model\IMailObserver.cs" />
+    <Compile Include="Model\AbstractConnection.cs" />
+    <Compile Include="Model\ConnectionDetails.cs" />
+    <Compile Include="Model\IConnectionObserver.cs" />
+    <Compile Include="Model\IMailConnection.cs" />
+    <Compile Include="Model\ImapConnection.cs" />
+    <Compile Include="Model\MailHelpers.cs" />
+    <Compile Include="Model\Pop3Connection.cs" />
+    <Compile Include="Model\RelayCommand.cs" />
     <Compile Include="Model\MailBody.cs" />
     <Compile Include="Model\MailEnums.cs" />
     <Compile Include="Model\IMailService.cs" />

@@ -4,28 +4,35 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace DeveloperTest.ViewModel
 {
-    public class MainWindowViewModel : IMainWindowViewModel, IMailObserver
+    public class MainWindowViewModel : IMainWindowViewModel
     {
+        private const int DEFAULT_IMAP_PORT = 993;
+        private const int DEFAULT_POP3_PORT = 995;
+
         private readonly IMailService mailService;
 
         private string servername = "imap.gmail.com";
-        private int port = 993;
+        private int port = DEFAULT_IMAP_PORT;
         private string username = "carl.claessens@gmail.com";
         private string password = "Gm@ilpas13";
         private ConnectionType selectedConnection = ConnectionType.IMAP;
         private EncryptionType selectedEncryption = EncryptionType.SSL_TLS;
+        private MailInfo selectedMail;
+        private string mailText;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public ObservableCollection<MailInfo> Envelopes { get; } = new ObservableCollection<MailInfo>();
-        public IList<MailBody> MailBodies { get; } = new List<MailBody>();
+        public ObservableCollection<MailInfo> MailInfos { get; }
+        public IList<MailBody> MailBodies { get; }
 
         public IEnumerable ConnectionTypes => Enum.GetValues(typeof(ConnectionType));
         public IEnumerable EncryptionTypes => Enum.GetValues(typeof(EncryptionType));
@@ -39,6 +46,11 @@ namespace DeveloperTest.ViewModel
                     return;
 
                 selectedConnection = value;
+
+                Port = selectedConnection == ConnectionType.IMAP ?
+                    DEFAULT_IMAP_PORT.ToString() :
+                    DEFAULT_POP3_PORT.ToString();
+
                 OnPropertyChanged();
             }
         }
@@ -86,7 +98,7 @@ namespace DeveloperTest.ViewModel
 
         public string Username
         {
-            get { return username; }
+            get => username;
             set
             {
                 if (value == username)
@@ -100,7 +112,7 @@ namespace DeveloperTest.ViewModel
 
         public string Password
         {
-            get { return password; }
+            get => password;
             set
             {
                 if (value == password)
@@ -112,48 +124,74 @@ namespace DeveloperTest.ViewModel
             }
         }
 
+        public MailInfo SelectedMail
+        {
+            get => selectedMail;
+            set
+            {
+                if (value == null || value == selectedMail)
+                    return;
+
+                selectedMail = value;
+                LoadMailTextAsync(selectedMail);
+                OnPropertyChanged();
+            }
+        }
+
+        public string MailText
+        {
+            get => mailText;
+            set
+            {
+                if (value == mailText)
+                    return;
+
+                mailText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private ConnectionDetails ConnectionDetails => new ConnectionDetails(SelectedConnection, SelectedEncryption, Servername, port, Username, Password);
+
         public ICommand StartCommand => new RelayCommand(Start, CanStart);
 
         public MainWindowViewModel()
         {
-            mailService = new MailService();        // Normally I would use Dependency Injection / Ioc, but it's not compatible with .Net 4.5.2
-            mailService.Register(this);
-        }
-
-        public void UnregisterFromMailService()
-        {
-            mailService.Unregister(this);
+            mailService = new MailService();  // Normally I would use Dependency Injection / Ioc, but it's not compatible with .Net 4.5.2
+            MailInfos = mailService.MailInfos;
+            MailBodies = mailService.MailBodies;
         }
 
         private void Start(object obj)
         {
-            Envelopes.Clear();
-            MailBodies.Clear();
-
-            mailService.Connect(Servername, port, Username, Password, SelectedConnection, SelectedEncryption);
+            mailService.Connect(ConnectionDetails);
         }
 
         private bool CanStart(object obj)
         {
             return !string.IsNullOrEmpty(Password) &&
-                    !string.IsNullOrEmpty(Username) &&
-                    !string.IsNullOrEmpty(Servername) &&
-                    !string.IsNullOrEmpty(Port);
+                   !string.IsNullOrEmpty(Username) &&
+                   !string.IsNullOrEmpty(Servername) &&
+                   !string.IsNullOrEmpty(Port);
+        }
+
+        private void LoadMailTextAsync(MailInfo envelope)
+        {
+            var body = MailBodies.FirstOrDefault(x => x.Uid == envelope.Uid);
+
+            if (body == null)
+            {
+                MailText = "===========================";
+            }
+            else
+            {
+                MailText = body.Text;
+            }
         }
 
         private void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        async void IMailObserver.NewMailInfoAdded(MailInfo info)
-        {
-            await App.Current.Dispatcher.InvokeAsync(() => Envelopes.Add(info));
-        }
-
-        void IMailObserver.NewMailBodyDownloaded(MailBody body)
-        {
-            MailBodies.Add(body);
         }
     }
 }

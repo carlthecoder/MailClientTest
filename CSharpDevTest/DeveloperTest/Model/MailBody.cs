@@ -1,22 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DeveloperTest.Model
+﻿namespace DeveloperTest.Model
 {
     public sealed class MailBody
     {
-        public long Uid { get; set; }
+        public string Uid { get; set; }
         public string Text { get; set; }
-        public string Html { get; set; }
 
-        public MailBody(long uid, string text, string html)
+        public MailBody(string uid, string text)
         {
             Uid = uid;
             Text = text;
-            Html = html;
         }
     }
 }
