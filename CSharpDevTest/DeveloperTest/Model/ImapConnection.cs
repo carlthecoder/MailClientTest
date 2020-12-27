@@ -1,28 +1,20 @@
 ﻿using Limilabs.Client.IMAP;
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Security.Authentication;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DeveloperTest.Model
 {
-    public sealed class ImapConnection : AbstractConnection, IMailConnection
+    public sealed class ImapConnection : ConnectionBase, IMailConnection
     {
-        private readonly object threadLocker = new object();
-        private readonly ConnectionDetails connectionDetails;
-
-        public ImapConnection(ConnectionDetails connectionDetails)
+        public ImapConnection(ConnectionDetails details)
         {
-            this.connectionDetails = connectionDetails;
+            connectionDetails = details;
         }
 
         public void DownloadMailInfo()
         {
-            using (var imap = ConnectToServer(connectionDetails))
+            using (var imap = ConnectClientToServer(connectionDetails))
             {
                 if (imap != null)
                 {
@@ -33,7 +25,6 @@ namespace DeveloperTest.Model
                         foreach (long uid in uids)
                         {
                             var info = imap.GetMessageInfoByUID(uid);
-
                             if (info != null)
                             {
                                 var mailInfo = MailHelpers.ComposeMailInfo(info);
@@ -52,48 +43,12 @@ namespace DeveloperTest.Model
             }
         }
 
-        private Imap ConnectToServer(ConnectionDetails connectionDetails)
-        {
-            var imap = new Imap();
-            // Handle encryption
-            //imap.SSLConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
-
-            try
-            {
-                switch (connectionDetails.EncryptionType)
-                {
-                    case EncryptionType.UNENCRYPTED:
-                        imap.Connect(connectionDetails.Servername, connectionDetails.Port);
-                        break;
-                    case EncryptionType.SSL_TLS:
-                        imap.ConnectSSL(connectionDetails.Servername, connectionDetails.Port);  // or ConnectSSL for SSL
-                        break;
-                    case EncryptionType.STARTTLS:
-                        imap.StartTLS();
-                        imap.ConnectSSL(connectionDetails.Servername, connectionDetails.Port);
-                        break;
-                }
-
-                imap.UseBestLogin(connectionDetails.Username, connectionDetails.Password);
-                imap.SelectInbox();
-            }
-            catch (Exception exception)
-            {
-                Debug.WriteLine($"Error connecting to Server: {exception.Message}");
-                imap.Close();
-                imap.Dispose();
-                imap = null;
-            }
-
-            return imap;
-        }
-
-        private void DownloadMailBody(MailInfo info)
+        public void DownloadMailBody(MailInfo info)
         {
             if (info.isBodyDownloaded)
                 return;
 
-            using (var imap = ConnectToServer(connectionDetails))
+            using (var imap = ConnectClientToServer(connectionDetails))
             {
                 if (imap != null)
                 {
@@ -123,6 +78,27 @@ namespace DeveloperTest.Model
                     imap.Close();
                 }
             }
+        }
+
+        private Imap ConnectClientToServer(ConnectionDetails connectionDetails)
+        {
+            var imap = GetConnectionClient(connectionDetails) as Imap;
+            if (imap == null)
+                return null;
+
+            try
+            {
+                imap.UseBestLogin(connectionDetails.Username, connectionDetails.Password);
+                imap.SelectInbox();
+            }
+            catch (Exception exception)
+            {
+                Debug.WriteLine($"Error connecting to Server: {exception.Message}");
+                imap.Dispose();
+                imap = null;
+            }
+
+            return imap;
         }
     }
 }

@@ -59,7 +59,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Model\AbstractConnection.cs" />
+    <Compile Include="Model\ConnectionBase.cs" />
     <Compile Include="Model\ConnectionDetails.cs" />
     <Compile Include="Model\IConnectionObserver.cs" />
     <Compile Include="Model\IMailConnection.cs" />

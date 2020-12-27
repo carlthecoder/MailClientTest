@@ -15,31 +15,23 @@ namespace DeveloperTest.Model
     {
         private IMailConnection connection;
 
-        public ObservableCollection<MailInfo> MailInfos { get; private set; } = new ObservableCollection<MailInfo>();
-        public IList<MailBody> MailBodies { get; private set; } = new List<MailBody>();
+        public ObservableCollection<MailInfo> MailInfos { get; } = new ObservableCollection<MailInfo>();
+        public IList<MailBody> MailBodies { get; } = new List<MailBody>();
 
-        public void Connect(ConnectionDetails connectionDetails)
+        public void GetMail(ConnectionDetails connectionDetails)
         {
             ClearCaches();
-            switch (connectionDetails.ConnectionType)
-            {
-                case ConnectionType.IMAP:
-                    connection = new ImapConnection(connectionDetails);
-                    break;
-                case ConnectionType.POP3:
-                    connection = new Pop3Connection(connectionDetails);
-                    break;
-                default:
-                    return;
-            }
+            // Todo: stop ongoing operations
+
+            connection = ConnectionBase.CreateConnection(connectionDetails);
+            if (connection == null)
+                return;
 
             connection.Register(this);
 
             Task.Factory.StartNew(connection.DownloadMailInfo, TaskCreationOptions.LongRunning);
         }
-
-
-        // Todo: solving this without an observer?
+        
         async void IConnectionObserver.NewInfoAdded(MailInfo info)
         {
             await App.Current.Dispatcher.InvokeAsync(() => MailInfos.Add(info));

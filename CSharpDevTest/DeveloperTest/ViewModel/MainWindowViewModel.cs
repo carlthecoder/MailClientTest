@@ -15,6 +15,8 @@ namespace DeveloperTest.ViewModel
 {
     public class MainWindowViewModel : IMainWindowViewModel
     {
+        private const int DEFAULT_TEXT_PORT = 465;
+        private const int ALT_TEXT_PORT = 587;
         private const int DEFAULT_IMAP_PORT = 993;
         private const int DEFAULT_POP3_PORT = 995;
 
@@ -46,11 +48,6 @@ namespace DeveloperTest.ViewModel
                     return;
 
                 selectedConnection = value;
-
-                Port = selectedConnection == ConnectionType.IMAP ?
-                    DEFAULT_IMAP_PORT.ToString() :
-                    DEFAULT_POP3_PORT.ToString();
-
                 OnPropertyChanged();
             }
         }
@@ -164,7 +161,7 @@ namespace DeveloperTest.ViewModel
 
         private void Start(object obj)
         {
-            mailService.Connect(ConnectionDetails);
+            mailService.GetMail(ConnectionDetails);
         }
 
         private bool CanStart(object obj)

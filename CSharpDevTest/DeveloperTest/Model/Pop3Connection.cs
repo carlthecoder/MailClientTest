@@ -11,14 +11,11 @@ using System.Threading.Tasks;
 
 namespace DeveloperTest.Model
 {
-    public class Pop3Connection : AbstractConnection, IMailConnection
+    public class Pop3Connection : ConnectionBase, IMailConnection
     {
-        private readonly object threadLocker = new object();
-        private readonly ConnectionDetails connectionDetails;
-
-        public Pop3Connection(ConnectionDetails connectionDetails)
+        public Pop3Connection(ConnectionDetails details)
         {
-            this.connectionDetails = connectionDetails;
+            connectionDetails = details;
         }
 
         public void DownloadMailInfo()
@@ -50,45 +47,7 @@ namespace DeveloperTest.Model
             }
         }
 
-
-        private Pop3 ConnectToServer(ConnectionDetails connectionDetails)
-        {
-            var pop3 = new Pop3();
-
-            // Handle encryption
-            //pop3.SSLConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
-
-            try
-            {
-                switch (connectionDetails.EncryptionType)
-                {
-                    case EncryptionType.UNENCRYPTED:
-                        pop3.Connect(connectionDetails.Servername, connectionDetails.Port);
-                        break;
-                    case EncryptionType.SSL_TLS:
-                        pop3.ConnectSSL(connectionDetails.Servername, connectionDetails.Port);
-                        break;
-                    case EncryptionType.STARTTLS:
-                        pop3.StartTLS();
-                        pop3.ConnectSSL(connectionDetails.Servername, connectionDetails.Port);
-                        break;
-                }
-
-                pop3.Login(connectionDetails.Username, connectionDetails.Password);
-            }
-            catch (Exception exception)
-            {
-                Debug.WriteLine($"Error connecting to Server: {exception.Message}");
-                pop3.Close();
-                pop3.Dispose();
-                pop3 = null;
-            }
-
-            return pop3;
-        }
-
-
-        private void DownloadMailBody(MailInfo info)
+        public void DownloadMailBody(MailInfo info)
         {
             if (info.isBodyDownloaded)
                 return;
@@ -119,5 +78,24 @@ namespace DeveloperTest.Model
         }
 
 
+        private Pop3 ConnectToServer(ConnectionDetails connectionDetails)
+        {
+            var pop3 = GetConnectionClient(connectionDetails) as Pop3;
+            if (pop3 == null)
+                return null;
+
+            try
+            {
+                pop3.Login(connectionDetails.Username, connectionDetails.Password);
+            }
+            catch (Exception exception)
+            {
+                Debug.WriteLine($"Error connecting to Server: {exception.Message}");
+                pop3.Dispose();
+                pop3 = null;
+            }
+
+            return pop3;
+        }
     }
 }
