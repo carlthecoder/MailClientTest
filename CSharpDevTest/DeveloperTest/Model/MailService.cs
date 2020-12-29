@@ -14,38 +14,65 @@ namespace DeveloperTest.Model
     public sealed class MailService : IMailService, IConnectionObserver
     {
         private IMailConnection connection;
+        private CancellationTokenSource tokenSource;
 
         public ObservableCollection<MailInfo> MailInfos { get; } = new ObservableCollection<MailInfo>();
         public IList<MailBody> MailBodies { get; } = new List<MailBody>();
 
-        public void GetMail(ConnectionDetails connectionDetails)
+        public void GetAllMail(ConnectionDetails connectionDetails)
         {
-            ClearCaches();
-            // Todo: stop ongoing operations
-
             connection = ConnectionBase.CreateConnection(connectionDetails);
             if (connection == null)
                 return;
 
             connection.Register(this);
+            tokenSource = new CancellationTokenSource();
 
-            Task.Factory.StartNew(connection.DownloadMailInfo, TaskCreationOptions.LongRunning);
-        }
-        
-        async void IConnectionObserver.NewInfoAdded(MailInfo info)
-        {
-            await App.Current.Dispatcher.InvokeAsync(() => MailInfos.Add(info));
+            Task.Factory.StartNew(() =>
+            {
+                try
+                {
+                    connection.DownloadMailInfo(tokenSource.Token);
+                }
+                catch (Exception exception)
+                {
+                    Debug.WriteLine($"Mail retrieval cancelled - {exception}");
+                }
+            }, TaskCreationOptions.LongRunning);
         }
 
-        async void IConnectionObserver.NewBodyAdded(MailBody body)
+        public void GetMailForInfo(MailInfo info)
         {
-            await App.Current.Dispatcher.InvokeAsync(() => MailBodies.Add(body));
+            connection.DownloadMailBody(info, tokenSource.Token);
+        }
+
+        public void CancelOperation()
+        {
+            HandleCancellation();
+            ClearCaches();
+        }
+
+        private void HandleCancellation()
+        {
+            tokenSource?.Cancel();
+            tokenSource?.Dispose();
+            connection.Unregister(this);
         }
 
         private void ClearCaches()
         {
             MailBodies.Clear();
             MailInfos.Clear();
+        }
+
+        void IConnectionObserver.NewInfoAdded(MailInfo info)
+        {
+            App.Current.Dispatcher.InvokeAsync(() => MailInfos.Add(info));
+        }
+
+        void IConnectionObserver.NewBodyAdded(MailBody body)
+        {
+            App.Current.Dispatcher.InvokeAsync(() => MailBodies.Add(body));
         }
     }
 }

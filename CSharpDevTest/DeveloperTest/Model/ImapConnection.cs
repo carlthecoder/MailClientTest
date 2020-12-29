@@ -1,20 +1,24 @@
 ﻿using Limilabs.Client.IMAP;
 using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DeveloperTest.Model
 {
-    public sealed class ImapConnection : ConnectionBase, IMailConnection
+    public sealed class ImapConnection : ConnectionBase
     {
         public ImapConnection(ConnectionDetails details)
         {
             connectionDetails = details;
         }
 
-        public void DownloadMailInfo()
+        public override void DownloadMailInfo(CancellationToken token)
         {
-            using (var imap = ConnectClientToServer(connectionDetails))
+            if (token.IsCancellationRequested)
+                token.ThrowIfCancellationRequested();
+
+            using (var imap = ConnectToServer(connectionDetails))
             {
                 if (imap != null)
                 {
@@ -24,13 +28,26 @@ namespace DeveloperTest.Model
                     {
                         foreach (long uid in uids)
                         {
+                            if (token.IsCancellationRequested)
+                                token.ThrowIfCancellationRequested();
+
                             var info = imap.GetMessageInfoByUID(uid);
                             if (info != null)
                             {
                                 var mailInfo = MailHelpers.ComposeMailInfo(info);
-                                NotifyObserversMailInfoAdded(mailInfo);
+                                NotifyObserversMailInfoAdded(mailInfo, token);
 
-                                Task.Factory.StartNew(() => DownloadMailBody(mailInfo), TaskCreationOptions.LongRunning);
+                                Task.Factory.StartNew(() =>
+                                {
+                                    try
+                                    {
+                                        DownloadMailBody(mailInfo, token);
+                                    }
+                                    catch (Exception)
+                                    {
+                                        Debug.WriteLine("Body download cancelled.");
+                                    }
+                                }, TaskCreationOptions.LongRunning);
                             }
                         }
                     }
@@ -43,12 +60,15 @@ namespace DeveloperTest.Model
             }
         }
 
-        public void DownloadMailBody(MailInfo info)
+        public override void DownloadMailBody(MailInfo info, CancellationToken token)
         {
             if (info.isBodyDownloaded)
                 return;
 
-            using (var imap = ConnectClientToServer(connectionDetails))
+            if (token.IsCancellationRequested)
+                token.ThrowIfCancellationRequested();
+
+            using (var imap = ConnectToServer(connectionDetails))
             {
                 if (imap != null)
                 {
@@ -58,19 +78,28 @@ namespace DeveloperTest.Model
                         {
                             if (!info.isBodyDownloaded)
                             {
+                                if (token.IsCancellationRequested)
+                                    token.ThrowIfCancellationRequested();
+
                                 var uid = long.Parse(info.Uid);
                                 var bodyStructure = imap.GetBodyStructureByUID(uid);
                                 var text = string.Empty;
+                                var html = string.Empty;
 
                                 if (bodyStructure.Text != null)
                                 {
                                     text = imap.GetTextByUID(bodyStructure.Text);
                                 }
 
+                                if (bodyStructure.Html != null)
+                                {
+                                    html = imap.GetTextByUID(bodyStructure.Html);
+                                }
+
                                 info.isBodyDownloaded = true;
 
-                                var mailBody = new MailBody(info.Uid, text);
-                                NotifyObserversMailBodyAdded(mailBody);
+                                var mailBody = new MailBody(info.Uid, text, html);
+                                NotifyObserversMailBodyAdded(mailBody, token);
                             }
                         }
                     }
@@ -80,7 +109,7 @@ namespace DeveloperTest.Model
             }
         }
 
-        private Imap ConnectClientToServer(ConnectionDetails connectionDetails)
+        private Imap ConnectToServer(ConnectionDetails connectionDetails)
         {
             var imap = GetConnectionClient(connectionDetails) as Imap;
             if (imap == null)

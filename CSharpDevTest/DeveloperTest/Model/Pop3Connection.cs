@@ -7,19 +7,23 @@ using System.Diagnostics;
 using System.Linq;
 using System.Security.Authentication;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DeveloperTest.Model
 {
-    public class Pop3Connection : ConnectionBase, IMailConnection
+    public class Pop3Connection : ConnectionBase
     {
         public Pop3Connection(ConnectionDetails details)
         {
             connectionDetails = details;
         }
 
-        public void DownloadMailInfo()
+        public override void DownloadMailInfo(CancellationToken token)
         {
+            if (token.IsCancellationRequested)
+                token.ThrowIfCancellationRequested();
+
             using (var pop3 = ConnectToServer(connectionDetails))
             {
                 if (pop3 != null)
@@ -31,11 +35,24 @@ namespace DeveloperTest.Model
                         var builder = new MailBuilder();
                         foreach (var uid in uids)
                         {
+                            if (token.IsCancellationRequested)
+                                token.ThrowIfCancellationRequested();
+
                             var header = builder.CreateFromEml(pop3.GetHeadersByUID(uid));
                             var mailInfo = MailHelpers.ComposeMailInfo(uid, header.From, header.Date, header.Subject);
-                            NotifyObserversMailInfoAdded(mailInfo);
+                            NotifyObserversMailInfoAdded(mailInfo, token);
 
-                            Task.Factory.StartNew(() => DownloadMailBody(mailInfo), TaskCreationOptions.LongRunning);
+                            Task.Factory.StartNew(() =>
+                            {
+                                try
+                                {
+                                    DownloadMailBody(mailInfo, token);
+                                }
+                                catch (Exception exception)
+                                {
+                                    Debug.WriteLine($"Body download cancelled - {exception}");
+                                }
+                            }, TaskCreationOptions.LongRunning);
                         }
                     }
                     catch (Exception exception)
@@ -47,10 +64,13 @@ namespace DeveloperTest.Model
             }
         }
 
-        public void DownloadMailBody(MailInfo info)
+        public override void DownloadMailBody(MailInfo info, CancellationToken token)
         {
             if (info.isBodyDownloaded)
                 return;
+
+            if (token.IsCancellationRequested)
+                token.ThrowIfCancellationRequested();
 
             using (var pop3 = ConnectToServer(connectionDetails))
             {
@@ -62,21 +82,25 @@ namespace DeveloperTest.Model
                         {
                             if (!info.isBodyDownloaded)
                             {
+                                if (token.IsCancellationRequested)
+                                    token.ThrowIfCancellationRequested();
+
                                 var builder = new MailBuilder();
                                 var email = builder.CreateFromEml(pop3.GetMessageByUID(info.Uid.ToString()));
-
-                                var text = email.Text;
+                                var html = email.GetBodyAsHtml();
+                                var text = email.GetTextFromHtml();
                                 info.isBodyDownloaded = true;
-                                var mailBody = new MailBody(info.Uid, text);
-                                NotifyObserversMailBodyAdded(mailBody);
+                                var mailBody = new MailBody(info.Uid, text, html);
+                                NotifyObserversMailBodyAdded(mailBody, token);
                             }
                         }
                     }
                     pop3.Close();
                 }
             }
-        }
 
+            return;
+        }
 
         private Pop3 ConnectToServer(ConnectionDetails connectionDetails)
         {

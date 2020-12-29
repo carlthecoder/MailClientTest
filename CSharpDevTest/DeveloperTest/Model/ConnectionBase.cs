@@ -4,10 +4,12 @@ using Limilabs.Client.POP3;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Security.Authentication;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace DeveloperTest.Model
 {
-    public abstract class ConnectionBase
+    public abstract class ConnectionBase : IMailConnection
     {
         protected readonly object threadLocker = new object();
         protected readonly IList<IConnectionObserver> observers = new List<IConnectionObserver>();
@@ -42,18 +44,27 @@ namespace DeveloperTest.Model
                 observers.Remove(observer);
         }
 
-        protected void NotifyObserversMailInfoAdded(MailInfo info)
+        public abstract void DownloadMailInfo(CancellationToken token);
+        public abstract void DownloadMailBody(MailInfo info, CancellationToken token);
+
+        protected void NotifyObserversMailInfoAdded(MailInfo info, CancellationToken token)
         {
             foreach (var observer in observers)
             {
+                if (token.IsCancellationRequested)
+                    token.ThrowIfCancellationRequested();
+
                 observer.NewInfoAdded(info);
             }
         }
 
-        protected void NotifyObserversMailBodyAdded(MailBody body)
+        protected void NotifyObserversMailBodyAdded(MailBody body, CancellationToken token)
         {
             foreach (var observer in observers)
             {
+                if (token.IsCancellationRequested)
+                    token.ThrowIfCancellationRequested();
+
                 observer.NewBodyAdded(body);
             }
         }

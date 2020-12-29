@@ -9,6 +9,8 @@ namespace DeveloperTest.Model
         ObservableCollection<MailInfo> MailInfos { get; }
         IList<MailBody> MailBodies { get; }
 
-        void GetMail(ConnectionDetails connectionDetails);
+        void GetAllMail(ConnectionDetails connectionDetails);
+        void GetMailForInfo(MailInfo info);
+        void CancelOperation();
     }
 }

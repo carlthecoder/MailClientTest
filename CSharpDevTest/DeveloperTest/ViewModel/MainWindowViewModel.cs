@@ -15,10 +15,7 @@ namespace DeveloperTest.ViewModel
 {
     public class MainWindowViewModel : IMainWindowViewModel
     {
-        private const int DEFAULT_TEXT_PORT = 465;
-        private const int ALT_TEXT_PORT = 587;
         private const int DEFAULT_IMAP_PORT = 993;
-        private const int DEFAULT_POP3_PORT = 995;
 
         private readonly IMailService mailService;
 
@@ -30,13 +27,16 @@ namespace DeveloperTest.ViewModel
         private EncryptionType selectedEncryption = EncryptionType.SSL_TLS;
         private MailInfo selectedMail;
         private string mailText;
+        private bool isStartButtonVisible;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
         public ObservableCollection<MailInfo> MailInfos { get; }
+
         public IList<MailBody> MailBodies { get; }
 
         public IEnumerable ConnectionTypes => Enum.GetValues(typeof(ConnectionType));
+
         public IEnumerable EncryptionTypes => Enum.GetValues(typeof(EncryptionType));
 
         public ConnectionType SelectedConnection
@@ -61,6 +61,20 @@ namespace DeveloperTest.ViewModel
                     return;
 
                 selectedEncryption = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public MailInfo SelectedMail
+        {
+            get => selectedMail;
+            set
+            {
+                if (value == null || value == selectedMail)
+                    return;
+
+                selectedMail = value;
+                LoadMailText(selectedMail);
                 OnPropertyChanged();
             }
         }
@@ -121,20 +135,6 @@ namespace DeveloperTest.ViewModel
             }
         }
 
-        public MailInfo SelectedMail
-        {
-            get => selectedMail;
-            set
-            {
-                if (value == null || value == selectedMail)
-                    return;
-
-                selectedMail = value;
-                LoadMailTextAsync(selectedMail);
-                OnPropertyChanged();
-            }
-        }
-
         public string MailText
         {
             get => mailText;
@@ -148,20 +148,36 @@ namespace DeveloperTest.ViewModel
             }
         }
 
-        private ConnectionDetails ConnectionDetails => new ConnectionDetails(SelectedConnection, SelectedEncryption, Servername, port, Username, Password);
+        public bool IsStartButtonVisible
+        {
+            get { return isStartButtonVisible; }
+            private set
+            {
+                if (value == IsStartButtonVisible)
+                    return;
+                isStartButtonVisible = value;
+                OnPropertyChanged();
+            }
+        }
 
         public ICommand StartCommand => new RelayCommand(Start, CanStart);
+
+        public ICommand StopCommand => new RelayCommand(Stop, _ => true);
+
+        private ConnectionDetails ConnectionDetails => new ConnectionDetails(SelectedConnection, SelectedEncryption, Servername, port, Username, Password);
 
         public MainWindowViewModel()
         {
             mailService = new MailService();  // Normally I would use Dependency Injection / Ioc, but it's not compatible with .Net 4.5.2
             MailInfos = mailService.MailInfos;
             MailBodies = mailService.MailBodies;
+            IsStartButtonVisible = true;
         }
 
         private void Start(object obj)
         {
-            mailService.GetMail(ConnectionDetails);
+            mailService.GetAllMail(ConnectionDetails);
+            IsStartButtonVisible = false;
         }
 
         private bool CanStart(object obj)
@@ -172,13 +188,28 @@ namespace DeveloperTest.ViewModel
                    !string.IsNullOrEmpty(Port);
         }
 
-        private void LoadMailTextAsync(MailInfo envelope)
+        private void Stop(object obj)
+        {
+            MailText = String.Empty;
+            mailService.CancelOperation();
+            IsStartButtonVisible = true;
+        }
+
+        private void LoadMailText(MailInfo envelope)
         {
             var body = MailBodies.FirstOrDefault(x => x.Uid == envelope.Uid);
 
             if (body == null)
             {
-                MailText = "===========================";
+                Task.Factory.StartNew(() =>
+                {
+                    mailService.GetMailForInfo(envelope);
+                }, TaskCreationOptions.LongRunning).ContinueWith(_ =>
+                {
+                    body = MailBodies.FirstOrDefault(x => x.Uid == envelope.Uid);
+                   //Dispatcher.CurrentDispatcher.InvokeAsync( () => MailText = body?.Text);
+                   MailText = body?.Text;
+                });
             }
             else
             {

@@ -59,6 +59,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Converter\FalseToVisibleConverter.cs" />
     <Compile Include="Model\ConnectionBase.cs" />
     <Compile Include="Model\ConnectionDetails.cs" />
     <Compile Include="Model\IConnectionObserver.cs" />
@@ -72,6 +73,7 @@
     <Compile Include="Model\IMailService.cs" />
     <Compile Include="Model\MailInfo.cs" />
     <Compile Include="Model\MailService.cs" />
+    <Compile Include="Converter\TrueToVisibleConverter.cs" />
     <Compile Include="ViewModel\IMainWindowViewModel.cs" />
     <Compile Include="ViewModel\MainWindowViewModel.cs" />
     <Page Include="MainWindow.xaml">
