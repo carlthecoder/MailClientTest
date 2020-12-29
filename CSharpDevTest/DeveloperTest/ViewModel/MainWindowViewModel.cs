@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -166,9 +167,14 @@ namespace DeveloperTest.ViewModel
 
         private ConnectionDetails ConnectionDetails => new ConnectionDetails(SelectedConnection, SelectedEncryption, Servername, port, Username, Password);
 
+
+        private TaskScheduler orderScheduler;
+
         public MainWindowViewModel()
         {
-            mailService = new MailService();  // Normally I would use Dependency Injection / Ioc, but it's not compatible with .Net 4.5.2
+            // Normally I would use Dependency Injection / Ioc, but it's not compatible with .Net 4.5.2
+            orderScheduler = new TaskOrderScheduler();
+            mailService = new MailService(orderScheduler);
             MailInfos = mailService.MailInfos;
             MailBodies = mailService.MailBodies;
             IsStartButtonVisible = true;
@@ -197,19 +203,18 @@ namespace DeveloperTest.ViewModel
 
         private void LoadMailText(MailInfo envelope)
         {
-            var body = MailBodies.FirstOrDefault(x => x.Uid == envelope.Uid);
+            MailText = "";
 
+            var body = MailBodies.FirstOrDefault(x => x.Uid == envelope.Uid);
             if (body == null)
             {
-                Task.Factory.StartNew(() =>
-                {
-                    mailService.GetMailForInfo(envelope);
-                }, TaskCreationOptions.LongRunning).ContinueWith(_ =>
-                {
-                    body = MailBodies.FirstOrDefault(x => x.Uid == envelope.Uid);
-                   //Dispatcher.CurrentDispatcher.InvokeAsync( () => MailText = body?.Text);
-                   MailText = body?.Text;
-                });
+                // Todo find a way to prioritize this Task
+                Task.Factory.StartNew(() => mailService.GetMailForInfo(envelope), CancellationToken.None, TaskCreationOptions.None, orderScheduler)
+                    .ContinueWith(_ =>
+                    {
+                        body = MailBodies.FirstOrDefault(x => x.Uid == envelope.Uid);
+                        MailText = body?.Text;
+                    });
             }
             else
             {

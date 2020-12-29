@@ -14,7 +14,8 @@ namespace DeveloperTest.Model
 {
     public class Pop3Connection : ConnectionBase
     {
-        public Pop3Connection(ConnectionDetails details)
+        public Pop3Connection(ConnectionDetails details, TaskScheduler scheduler)
+            : base(scheduler)
         {
             connectionDetails = details;
         }
@@ -52,7 +53,7 @@ namespace DeveloperTest.Model
                                 {
                                     Debug.WriteLine($"Body download cancelled - {exception}");
                                 }
-                            }, TaskCreationOptions.LongRunning);
+                            }, token, TaskCreationOptions.LongRunning, scheduler);
                         }
                     }
                     catch (Exception exception)
@@ -74,29 +75,27 @@ namespace DeveloperTest.Model
 
             using (var pop3 = ConnectToServer(connectionDetails))
             {
-                if (pop3 != null)
-                {
-                    if (!info.isBodyDownloaded)
-                    {
-                        lock (threadLocker)
-                        {
-                            if (!info.isBodyDownloaded)
-                            {
-                                if (token.IsCancellationRequested)
-                                    token.ThrowIfCancellationRequested();
+                if (pop3 == null || info.isBodyDownloaded)
+                    return;
 
-                                var builder = new MailBuilder();
-                                var email = builder.CreateFromEml(pop3.GetMessageByUID(info.Uid.ToString()));
-                                var html = email.GetBodyAsHtml();
-                                var text = email.GetTextFromHtml();
-                                info.isBodyDownloaded = true;
-                                var mailBody = new MailBody(info.Uid, text, html);
-                                NotifyObserversMailBodyAdded(mailBody, token);
-                            }
-                        }
-                    }
-                    pop3.Close();
+                lock (threadLocker)
+                {
+                    if (info.isBodyDownloaded)
+                        return;
+                    if (token.IsCancellationRequested)
+                        token.ThrowIfCancellationRequested();
+
+                    var builder = new MailBuilder();
+                    var email = builder.CreateFromEml(pop3.GetMessageByUID(info.Uid.ToString()));
+                    var html = email.GetBodyAsHtml();
+                    var text = email.GetTextFromHtml();
+                    var mailBody = new MailBody(info.Uid, text, html);
+
+                    NotifyObserversMailBodyAdded(mailBody, token);
+                    info.isBodyDownloaded = true;
                 }
+
+                pop3.Close();
             }
 
             return;

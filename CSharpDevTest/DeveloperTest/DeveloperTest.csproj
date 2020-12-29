@@ -74,6 +74,7 @@
     <Compile Include="Model\MailInfo.cs" />
     <Compile Include="Model\MailService.cs" />
     <Compile Include="Converter\TrueToVisibleConverter.cs" />
+    <Compile Include="Model\TaskOrderScheduler.cs" />
     <Compile Include="ViewModel\IMainWindowViewModel.cs" />
     <Compile Include="ViewModel\MainWindowViewModel.cs" />
     <Page Include="MainWindow.xaml">

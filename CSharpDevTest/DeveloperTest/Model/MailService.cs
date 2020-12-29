@@ -1,11 +1,7 @@
-﻿using Limilabs.Client.IMAP;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Security.Authentication;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,9 +15,16 @@ namespace DeveloperTest.Model
         public ObservableCollection<MailInfo> MailInfos { get; } = new ObservableCollection<MailInfo>();
         public IList<MailBody> MailBodies { get; } = new List<MailBody>();
 
+        TaskScheduler scheduler;
+
+        public MailService(TaskScheduler scheduler)
+        {
+            this.scheduler = scheduler;
+        }
+
         public void GetAllMail(ConnectionDetails connectionDetails)
         {
-            connection = ConnectionBase.CreateConnection(connectionDetails);
+            connection = ConnectionBase.CreateConnection(connectionDetails, scheduler);
             if (connection == null)
                 return;
 

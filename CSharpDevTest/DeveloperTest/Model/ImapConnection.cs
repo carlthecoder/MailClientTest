@@ -8,7 +8,8 @@ namespace DeveloperTest.Model
 {
     public sealed class ImapConnection : ConnectionBase
     {
-        public ImapConnection(ConnectionDetails details)
+        public ImapConnection(ConnectionDetails details, TaskScheduler scheduler)
+            : base(scheduler)
         {
             connectionDetails = details;
         }
@@ -47,7 +48,7 @@ namespace DeveloperTest.Model
                                     {
                                         Debug.WriteLine("Body download cancelled.");
                                     }
-                                }, TaskCreationOptions.LongRunning);
+                                }, token, TaskCreationOptions.LongRunning, scheduler);
                             }
                         }
                     }
@@ -70,42 +71,35 @@ namespace DeveloperTest.Model
 
             using (var imap = ConnectToServer(connectionDetails))
             {
-                if (imap != null)
+                if (imap == null || info.isBodyDownloaded)
+                    return;
+                if (token.IsCancellationRequested)
+                    token.ThrowIfCancellationRequested();
+
+                lock (threadLocker)
                 {
-                    if (!info.isBodyDownloaded)
-                    {
-                        lock (threadLocker)
-                        {
-                            if (!info.isBodyDownloaded)
-                            {
-                                if (token.IsCancellationRequested)
-                                    token.ThrowIfCancellationRequested();
+                    if (info.isBodyDownloaded)
+                        return;
+                    if (token.IsCancellationRequested)
+                        token.ThrowIfCancellationRequested();
 
-                                var uid = long.Parse(info.Uid);
-                                var bodyStructure = imap.GetBodyStructureByUID(uid);
-                                var text = string.Empty;
-                                var html = string.Empty;
+                    var uid = long.Parse(info.Uid);
+                    var bodyStructure = imap.GetBodyStructureByUID(uid);
+                    var text = string.Empty;
+                    var html = string.Empty;
 
-                                if (bodyStructure.Text != null)
-                                {
-                                    text = imap.GetTextByUID(bodyStructure.Text);
-                                }
+                    if (bodyStructure.Text != null)
+                        text = imap.GetTextByUID(bodyStructure.Text);
+                    if (bodyStructure.Html != null)
+                        html = imap.GetTextByUID(bodyStructure.Html);
 
-                                if (bodyStructure.Html != null)
-                                {
-                                    html = imap.GetTextByUID(bodyStructure.Html);
-                                }
+                    var mailBody = new MailBody(info.Uid, text, html);
 
-                                info.isBodyDownloaded = true;
-
-                                var mailBody = new MailBody(info.Uid, text, html);
-                                NotifyObserversMailBodyAdded(mailBody, token);
-                            }
-                        }
-                    }
-
-                    imap.Close();
+                    NotifyObserversMailBodyAdded(mailBody, token);
+                    info.isBodyDownloaded = true;
                 }
+
+                imap.Close();
             }
         }
 

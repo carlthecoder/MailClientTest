@@ -15,17 +15,23 @@ namespace DeveloperTest.Model
         protected readonly IList<IConnectionObserver> observers = new List<IConnectionObserver>();
 
         protected ConnectionDetails connectionDetails;
+        protected TaskScheduler scheduler;
 
-        public static IMailConnection CreateConnection(ConnectionDetails details)
+        protected ConnectionBase(TaskScheduler scheduler)
+        {
+            this.scheduler = scheduler;
+        }
+
+        public static IMailConnection CreateConnection(ConnectionDetails details, TaskScheduler scheduler)
         {
             IMailConnection connection = null;
             switch (details.ConnectionType)
             {
                 case ConnectionType.IMAP:
-                    connection = new ImapConnection(details);
+                    connection = new ImapConnection(details, scheduler);
                     break;
                 case ConnectionType.POP3:
-                    connection = new Pop3Connection(details);
+                    connection = new Pop3Connection(details, scheduler);
                     break;
             }
 
