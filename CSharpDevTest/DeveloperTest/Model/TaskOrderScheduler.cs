@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,7 +27,6 @@ namespace DeveloperTest.Model
         {
             ThreadPool.QueueUserWorkItem(_ =>
             {
-                // Process all available items in the queue.
                 while (true)
                 {
                     Task item;
@@ -45,7 +41,6 @@ namespace DeveloperTest.Model
 
                     TryExecuteTask(item);
                 }
-
             }, null);
         }
 

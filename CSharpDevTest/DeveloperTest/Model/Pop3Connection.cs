@@ -1,12 +1,7 @@
 ﻿using Limilabs.Client.POP3;
 using Limilabs.Mail;
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Security.Authentication;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -41,25 +36,16 @@ namespace DeveloperTest.Model
 
                             var header = builder.CreateFromEml(pop3.GetHeadersByUID(uid));
                             var mailInfo = MailHelpers.ComposeMailInfo(uid, header.From, header.Date, header.Subject);
-                            NotifyObserversMailInfoAdded(mailInfo, token);
 
-                            Task.Factory.StartNew(() =>
-                            {
-                                try
-                                {
-                                    DownloadMailBody(mailInfo, token);
-                                }
-                                catch (Exception exception)
-                                {
-                                    Debug.WriteLine($"Body download cancelled - {exception}");
-                                }
-                            }, token, TaskCreationOptions.LongRunning, scheduler);
+                            NotifyObserversMailInfoAdded(mailInfo, token);
+                            RunMailBodyDownloadTask(mailInfo, token);
                         }
                     }
                     catch (Exception exception)
                     {
                         Debug.WriteLine($"Message: {exception.Message}");
                     }
+
                     pop3.Close();
                 }
             }
@@ -82,6 +68,7 @@ namespace DeveloperTest.Model
                 {
                     if (info.isBodyDownloaded)
                         return;
+
                     if (token.IsCancellationRequested)
                         token.ThrowIfCancellationRequested();
 
@@ -97,8 +84,6 @@ namespace DeveloperTest.Model
 
                 pop3.Close();
             }
-
-            return;
         }
 
         private Pop3 ConnectToServer(ConnectionDetails connectionDetails)

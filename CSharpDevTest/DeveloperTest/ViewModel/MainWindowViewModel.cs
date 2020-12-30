@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using System.Windows.Threading;
 
 namespace DeveloperTest.ViewModel
 {
@@ -19,16 +18,16 @@ namespace DeveloperTest.ViewModel
         private const int DEFAULT_IMAP_PORT = 993;
 
         private readonly IMailService mailService;
+        private readonly TaskScheduler orderScheduler;
 
-        private string servername = "imap.gmail.com";
-        private int port = DEFAULT_IMAP_PORT;
-        private string username = "carl.claessens@gmail.com";
-        private string password = "Gm@ilpas13";
+        private MailInfo selectedMail;
         private ConnectionType selectedConnection = ConnectionType.IMAP;
         private EncryptionType selectedEncryption = EncryptionType.SSL_TLS;
-        private MailInfo selectedMail;
+        private int port = DEFAULT_IMAP_PORT;
+        private string servername;
+        private string username;
+        private string password;
         private string mailText;
-        private bool isStartButtonVisible;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -149,26 +148,9 @@ namespace DeveloperTest.ViewModel
             }
         }
 
-        public bool IsStartButtonVisible
-        {
-            get { return isStartButtonVisible; }
-            private set
-            {
-                if (value == IsStartButtonVisible)
-                    return;
-                isStartButtonVisible = value;
-                OnPropertyChanged();
-            }
-        }
-
         public ICommand StartCommand => new RelayCommand(Start, CanStart);
 
-        public ICommand StopCommand => new RelayCommand(Stop, _ => true);
-
         private ConnectionDetails ConnectionDetails => new ConnectionDetails(SelectedConnection, SelectedEncryption, Servername, port, Username, Password);
-
-
-        private TaskScheduler orderScheduler;
 
         public MainWindowViewModel()
         {
@@ -177,13 +159,13 @@ namespace DeveloperTest.ViewModel
             mailService = new MailService(orderScheduler);
             MailInfos = mailService.MailInfos;
             MailBodies = mailService.MailBodies;
-            IsStartButtonVisible = true;
         }
 
         private void Start(object obj)
         {
+            MailText = String.Empty;
+            mailService.CancelOperation();
             mailService.GetAllMail(ConnectionDetails);
-            IsStartButtonVisible = false;
         }
 
         private bool CanStart(object obj)
@@ -194,13 +176,6 @@ namespace DeveloperTest.ViewModel
                    !string.IsNullOrEmpty(Port);
         }
 
-        private void Stop(object obj)
-        {
-            MailText = String.Empty;
-            mailService.CancelOperation();
-            IsStartButtonVisible = true;
-        }
-
         private void LoadMailText(MailInfo envelope)
         {
             MailText = "";
@@ -208,7 +183,6 @@ namespace DeveloperTest.ViewModel
             var body = MailBodies.FirstOrDefault(x => x.Uid == envelope.Uid);
             if (body == null)
             {
-                // Todo find a way to prioritize this Task
                 Task.Factory.StartNew(() => mailService.GetMailForInfo(envelope), CancellationToken.None, TaskCreationOptions.None, orderScheduler)
                     .ContinueWith(_ =>
                     {

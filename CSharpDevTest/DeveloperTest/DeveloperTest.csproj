@@ -59,7 +59,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Converter\FalseToVisibleConverter.cs" />
     <Compile Include="Model\ConnectionBase.cs" />
     <Compile Include="Model\ConnectionDetails.cs" />
     <Compile Include="Model\IConnectionObserver.cs" />
@@ -69,11 +68,10 @@
     <Compile Include="Model\Pop3Connection.cs" />
     <Compile Include="Model\RelayCommand.cs" />
     <Compile Include="Model\MailBody.cs" />
-    <Compile Include="Model\MailEnums.cs" />
+    <Compile Include="Model\ConnectionEnums.cs" />
     <Compile Include="Model\IMailService.cs" />
     <Compile Include="Model\MailInfo.cs" />
     <Compile Include="Model\MailService.cs" />
-    <Compile Include="Converter\TrueToVisibleConverter.cs" />
     <Compile Include="Model\TaskOrderScheduler.cs" />
     <Compile Include="ViewModel\IMainWindowViewModel.cs" />
     <Compile Include="ViewModel\MainWindowViewModel.cs" />

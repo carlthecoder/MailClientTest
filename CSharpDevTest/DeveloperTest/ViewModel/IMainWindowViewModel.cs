@@ -9,9 +9,7 @@ namespace DeveloperTest.ViewModel
         string Port { get; set; }
         string Username { get; set; }
         string Password { get; set; }
-        bool IsStartButtonVisible { get; }
 
         ICommand StartCommand { get; }
-        ICommand StopCommand { get; }
     }
 }

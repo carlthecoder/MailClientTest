@@ -9,13 +9,13 @@ namespace DeveloperTest.Model
 {
     public sealed class MailService : IMailService, IConnectionObserver
     {
+        private readonly TaskScheduler scheduler;
+
         private IMailConnection connection;
         private CancellationTokenSource tokenSource;
 
         public ObservableCollection<MailInfo> MailInfos { get; } = new ObservableCollection<MailInfo>();
         public IList<MailBody> MailBodies { get; } = new List<MailBody>();
-
-        TaskScheduler scheduler;
 
         public MailService(TaskScheduler scheduler)
         {
@@ -59,7 +59,7 @@ namespace DeveloperTest.Model
         {
             tokenSource?.Cancel();
             tokenSource?.Dispose();
-            connection.Unregister(this);
+            connection?.Unregister(this);
         }
 
         private void ClearCaches()

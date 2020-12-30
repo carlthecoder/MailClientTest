@@ -12,14 +12,14 @@ namespace DeveloperTest.Model
         {
             var fromString = GetSendersAddresses(info.Envelope.From);
 
-            return new MailInfo(info.UID.Value.ToString(), fromString.ToString(), info.Envelope.Date, info.Envelope.Subject);
+            return new MailInfo(info.UID.Value.ToString(), fromString, info.Envelope.Date, info.Envelope.Subject);
         }
 
         public static MailInfo ComposeMailInfo(string uid, IList<MailBox> from, DateTime? date, string subject)
         {
-            var fromString = GetSendersAddresses(from);            
+            var fromString = GetSendersAddresses(from);
 
-            return new MailInfo(uid, fromString.ToString(), date, subject);
+            return new MailInfo(uid, fromString, date, subject);
         }
 
         private static string GetSendersAddresses(IList<MailBox> from)
@@ -27,7 +27,7 @@ namespace DeveloperTest.Model
             var fromString = new StringBuilder();
             foreach (var sender in from)
             {
-                fromString.Append($"{sender.Address}  ");
+                fromString.Append($"{sender.Address}; ");
             }
             return fromString.ToString();
         }

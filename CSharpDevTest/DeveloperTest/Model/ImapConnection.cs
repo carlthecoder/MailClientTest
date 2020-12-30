@@ -36,19 +36,9 @@ namespace DeveloperTest.Model
                             if (info != null)
                             {
                                 var mailInfo = MailHelpers.ComposeMailInfo(info);
-                                NotifyObserversMailInfoAdded(mailInfo, token);
 
-                                Task.Factory.StartNew(() =>
-                                {
-                                    try
-                                    {
-                                        DownloadMailBody(mailInfo, token);
-                                    }
-                                    catch (Exception)
-                                    {
-                                        Debug.WriteLine("Body download cancelled.");
-                                    }
-                                }, token, TaskCreationOptions.LongRunning, scheduler);
+                                NotifyObserversMailInfoAdded(mailInfo, token);
+                                RunMailBodyDownloadTask(mailInfo, token);
                             }
                         }
                     }
@@ -56,6 +46,7 @@ namespace DeveloperTest.Model
                     {
                         Debug.WriteLine($"Message: {exception.Message}");
                     }
+
                     imap.Close();
                 }
             }
@@ -73,13 +64,12 @@ namespace DeveloperTest.Model
             {
                 if (imap == null || info.isBodyDownloaded)
                     return;
-                if (token.IsCancellationRequested)
-                    token.ThrowIfCancellationRequested();
 
                 lock (threadLocker)
                 {
                     if (info.isBodyDownloaded)
                         return;
+
                     if (token.IsCancellationRequested)
                         token.ThrowIfCancellationRequested();
 
