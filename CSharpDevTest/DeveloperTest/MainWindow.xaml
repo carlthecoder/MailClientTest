@@ -4,16 +4,16 @@
         Title="MainWindow" Height="740" Width="1297">
     <Grid>
         <DataGrid x:Name="MailGrid" VerticalAlignment="Top" Height="554" Margin="10,146,0,0" HorizontalAlignment="Left" Width="632" ItemsSource="{Binding MailInfos}" SelectedItem="{Binding SelectedMail, Mode=TwoWay}"/>
-        <TextBox HorizontalAlignment="Left" Height="23" Margin="98,41,0,0" TextWrapping="Wrap" Text="{Binding Servername, Mode=TwoWay}" VerticalAlignment="Top" Width="190"/>
+        <TextBox HorizontalAlignment="Left" Height="23" Margin="98,41,0,0" TextWrapping="Wrap" Text="{Binding Servername, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="190"/>
         <Label Content="Server" HorizontalAlignment="Left" Margin="10,37,0,0" VerticalAlignment="Top"/>
         <Label Content="Port" HorizontalAlignment="Left" Margin="10,65,0,0" VerticalAlignment="Top"/>
-        <TextBox HorizontalAlignment="Left" Height="23" Margin="98,69,0,0" TextWrapping="Wrap" Text="{Binding Port, Mode=TwoWay}" VerticalAlignment="Top" Width="190"/>
+        <TextBox HorizontalAlignment="Left" Height="23" Margin="98,69,0,0" TextWrapping="Wrap" Text="{Binding Port, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="190"/>
         <Label Content="Encryption" HorizontalAlignment="Left" Margin="323,7,0,0" VerticalAlignment="Top"/>
         <ComboBox HorizontalAlignment="Left" Margin="411,10,0,0" VerticalAlignment="Top" Width="190" ItemsSource="{Binding EncryptionTypes, Mode=OneWay}" SelectedItem="{Binding SelectedEncryption, Mode=TwoWay}"/>
         <Label Content="Username" HorizontalAlignment="Left" Margin="323,38,0,0" VerticalAlignment="Top"/>
         <Label Content="Password" HorizontalAlignment="Left" Margin="323,69,0,0" VerticalAlignment="Top"/>
-        <TextBox HorizontalAlignment="Left" Height="23" Margin="411,42,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="190" Text="{Binding Username, Mode=TwoWay}"/>
-        <TextBox HorizontalAlignment="Left" Height="23" Margin="411,73,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="190" Text="{Binding Password, Mode=TwoWay}"/>
+        <TextBox HorizontalAlignment="Left" Height="23" Margin="411,42,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="190" Text="{Binding Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBox HorizontalAlignment="Left" Height="23" Margin="411,73,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="190" Text="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
         <Button Content="Start" HorizontalAlignment="Left" Margin="446,104,0,0" VerticalAlignment="Top" Width="155" Height="36" Command="{Binding StartCommand, Mode=OneWay}" />        
         <Label Content="Server type" HorizontalAlignment="Left" Margin="10,7,0,0" VerticalAlignment="Top"/>
         <ComboBox HorizontalAlignment="Left" Margin="98,10,0,0" VerticalAlignment="Top" Width="190" ItemsSource="{Binding ConnectionTypes, Mode=OneWay}" SelectedItem="{Binding SelectedConnection, Mode=TwoWay}"/>
